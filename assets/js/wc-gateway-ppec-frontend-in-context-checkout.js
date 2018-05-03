@@ -3,16 +3,36 @@
 
 	var $wc_ppec = {
 		init: function() {
-			window.paypalCheckoutReady = function() {				
-				paypal.checkout.setup(
-					wc_ppec_context.payer_id,
-					{
-						environment: wc_ppec_context.environment,
-						button: ['woo_pp_ec_button', 'woo_pp_ppc_button'],
-						locale: wc_ppec_context.locale,
-						container: ['woo_pp_ec_button', 'woo_pp_ppc_button']
-					}
-				);
+			window.paypalCheckoutReady = function() {
+				paypal.Button.render( {
+					env: wc_ppec_context.env === 'live' ? 'production' : 'sandbox',
+					commit: true, // Show a 'Pay Now' button
+
+					funding: {
+						allowed: wc_ppec_context.paypal_credit ? [ paypal.FUNDING.CREDIT ] : [],
+						disallowed: [ paypal.FUNDING.CARD, paypal.FUNDING.ELV ],
+					},
+
+					style: {
+						tagline: false,
+						size: wc_ppec_context.button_size,
+						layout: 'vertical',
+					},
+
+					payment: function( data, actions ) {
+						return paypal.request.post( wc_ppec_context.start_checkout_url )
+							.then( function( data ) { return data.token; } );
+					},
+
+					onAuthorize: function( data, actions ) {
+						return actions.redirect();
+					},
+
+					onCancel: function( data, actions ) {
+						return actions.redirect();
+					},
+
+				}, '#woo_pp_ec_button' );
 			}
 		}
 	}
@@ -45,7 +65,5 @@
 		} );
 	} );
 
-	if ( wc_ppec_context.show_modal ) {
-		$wc_ppec.init();
-	}
+	$wc_ppec.init();
 })( jQuery, window, document );

@@ -30,6 +30,7 @@ class WC_Gateway_PPEC_Cart_Handler {
 		}
 
 		add_action( 'wc_ajax_wc_ppec_update_shipping_costs', array( $this, 'wc_ajax_update_shipping_costs' ) );
+		add_action( 'wc_ajax_wc_ppec_start_checkout', array( $this, 'wc_ajax_start_checkout' ) );
 	}
 
 	/**
@@ -118,6 +119,19 @@ class WC_Gateway_PPEC_Cart_Handler {
 	}
 
 	/**
+	 * Set Express Checkout and return token in response.
+	 *
+	 * @since 1.6.0
+	 */
+	public function wc_ajax_start_checkout() {
+		// TODO verify a nonce
+
+		$checkout = wc_gateway_ppec()->checkout;
+		$checkout->start_checkout_from_cart();
+		wp_send_json( array( 'token' => WC()->session->paypal->token ) );
+	}
+
+	/**
 	 * Display paypal button on the product page.
 	 *
 	 * @since 1.4.0
@@ -131,14 +145,9 @@ class WC_Gateway_PPEC_Cart_Handler {
 
 		$settings = wc_gateway_ppec()->settings;
 
-		$express_checkout_img_url = apply_filters( 'woocommerce_paypal_express_checkout_button_img_url', sprintf( 'https://www.paypalobjects.com/webstatic/en_US/i/buttons/checkout-logo-%s.png', $settings->button_size ) );
-
 		?>
 		<div class="wcppec-checkout-buttons woo_pp_cart_buttons_div">
-
-			<a href="<?php echo esc_url( add_query_arg( array( 'startcheckout' => 'true' ), wc_get_page_permalink( 'cart' ) ) ); ?>" id="woo_pp_ec_button_product" class="wcppec-checkout-buttons__button">
-				<img src="<?php echo esc_url( $express_checkout_img_url ); ?>" alt="<?php _e( 'Check out with PayPal', 'woocommerce-gateway-paypal-express-checkout' ); ?>" style="width: auto; height: auto;">
-			</a>
+			<div id="woo_pp_ec_button"></div>
 		</div>
 		<?php
 	}
@@ -155,9 +164,6 @@ class WC_Gateway_PPEC_Cart_Handler {
 		if ( ! isset( $gateways['ppec_paypal'] ) || 'no' === $settings->cart_checkout_enabled ) {
 			return;
 		}
-
-		$express_checkout_img_url = apply_filters( 'woocommerce_paypal_express_checkout_button_img_url', sprintf( 'https://www.paypalobjects.com/webstatic/en_US/i/buttons/checkout-logo-%s.png', $settings->button_size ) );
-		$paypal_credit_img_url    = apply_filters( 'woocommerce_paypal_express_checkout_credit_button_img_url', sprintf( 'https://www.paypalobjects.com/webstatic/en_US/i/buttons/ppcredit-logo-%s.png', $settings->button_size ) );
 		?>
 		<div class="wcppec-checkout-buttons woo_pp_cart_buttons_div">
 
@@ -167,15 +173,7 @@ class WC_Gateway_PPEC_Cart_Handler {
 				</div>
 			<?php endif; ?>
 
-			<a href="<?php echo esc_url( add_query_arg( array( 'startcheckout' => 'true' ), wc_get_page_permalink( 'cart' ) ) ); ?>" id="woo_pp_ec_button" class="wcppec-checkout-buttons__button">
-				<img src="<?php echo esc_url( $express_checkout_img_url ); ?>" alt="<?php _e( 'Check out with PayPal', 'woocommerce-gateway-paypal-express-checkout' ); ?>" style="width: auto; height: auto;">
-			</a>
-
-			<?php if ( $settings->is_credit_enabled() ) : ?>
-				<a href="<?php echo esc_url( add_query_arg( array( 'startcheckout' => 'true', 'use-ppc' => 'true' ), wc_get_page_permalink( 'cart' ) ) ); ?>" id="woo_pp_ppc_button" class="wcppec-checkout-buttons__button">
-				<img src="<?php echo esc_url( $paypal_credit_img_url ); ?>" alt="<?php _e( 'Pay with PayPal Credit', 'woocommerce-gateway-paypal-express-checkout' ); ?>" style="width: auto; height: auto;">
-				</a>
-			<?php endif; ?>
+			<div id="woo_pp_ec_button"></div>
 		</div>
 		<?php
 	}
@@ -193,9 +191,7 @@ class WC_Gateway_PPEC_Cart_Handler {
 			return;
 		}
 		?>
-		<a href="<?php echo esc_url( add_query_arg( array( 'startcheckout' => 'true' ), wc_get_page_permalink( 'cart' ) ) ); ?>" id="woo_pp_ec_button" class="wcppec-cart-widget-button">
-			<img src="<?php echo esc_url( 'https://www.paypalobjects.com/webstatic/en_US/i/btn/png/gold-rect-paypalcheckout-26px.png' ); ?>" alt="<?php _e( 'Check out with PayPal', 'woocommerce-gateway-paypal-express-checkout' ); ?>" style="width: auto; height: auto;">
-		</a>
+		<div id="woo_pp_ec_button"></div>
 		<?php
 	}
 
@@ -208,28 +204,19 @@ class WC_Gateway_PPEC_Cart_Handler {
 
 		wp_enqueue_style( 'wc-gateway-ppec-frontend-cart', wc_gateway_ppec()->plugin_url . 'assets/css/wc-gateway-ppec-frontend-cart.css' );
 
-		if ( is_cart() ) {
+		if ( is_cart() || is_product() ) {
 			wp_enqueue_script( 'paypal-checkout-js', 'https://www.paypalobjects.com/api/checkout.js', array(), null, true );
 			wp_enqueue_script( 'wc-gateway-ppec-frontend-in-context-checkout', wc_gateway_ppec()->plugin_url . 'assets/js/wc-gateway-ppec-frontend-in-context-checkout.js', array( 'jquery' ), wc_gateway_ppec()->version, true );
 			wp_localize_script( 'wc-gateway-ppec-frontend-in-context-checkout', 'wc_ppec_context',
 				array(
-					'payer_id'    => $client->get_payer_id(),
-					'environment' => $settings->get_environment(),
-					'locale'      => $settings->get_paypal_locale(),
-					'start_flow'  => esc_url( add_query_arg( array( 'startcheckout' => 'true' ), wc_get_page_permalink( 'cart' ) ) ),
-					'show_modal'  => apply_filters( 'woocommerce_paypal_express_checkout_show_cart_modal', true ),
+					'env'                         => $settings->get_environment(),
+					'production'                  => $settings->api_clientid,
+					'sandbox'                     => $settings->sandbox_api_clientid,
+					'button_size'                 => $settings->button_size,
+					'paypal_credit'               => $settings->is_credit_enabled(),
 					'update_shipping_costs_nonce' => wp_create_nonce( '_wc_ppec_update_shipping_costs_nonce' ),
-					'ajaxurl'     => WC_AJAX::get_endpoint( 'wc_ppec_update_shipping_costs' ),
-				)
-			);
-		}
-
-		if ( is_product() ) {
-			wp_enqueue_script( 'wc-gateway-ppec-generate-cart', wc_gateway_ppec()->plugin_url . 'assets/js/wc-gateway-ppec-generate-cart.js', array( 'jquery' ), wc_gateway_ppec()->version, true );
-			wp_localize_script( 'wc-gateway-ppec-generate-cart', 'wc_ppec_context',
-				array(
-					'generate_cart_nonce' => wp_create_nonce( '_wc_ppec_generate_cart_nonce' ),
-					'ajaxurl'             => WC_AJAX::get_endpoint( 'wc_ppec_generate_cart' ),
+					'ajaxurl'                     => WC_AJAX::get_endpoint( 'wc_ppec_update_shipping_costs' ),
+					'start_checkout_url'          => WC_AJAX::get_endpoint( 'wc_ppec_start_checkout' ),
 				)
 			);
 		}
