@@ -212,6 +212,8 @@ class WC_Gateway_PPEC_Cart_Handler {
 					'env'                         => $settings->get_environment(),
 					'production'                  => $settings->api_clientid,
 					'sandbox'                     => $settings->sandbox_api_clientid,
+					'locale'                      => $settings->get_paypal_locale(),
+
 					'button_size'                 => $settings->button_size,
 					'paypal_credit'               => $settings->is_credit_enabled(),
 					'update_shipping_costs_nonce' => wp_create_nonce( '_wc_ppec_update_shipping_costs_nonce' ),

@@ -6,6 +6,7 @@
 			window.paypalCheckoutReady = function() {
 				paypal.Button.render( {
 					env: wc_ppec_context.env === 'live' ? 'production' : 'sandbox',
+					locale: wc_ppec_context.locale,
 					commit: true, // Show a 'Pay Now' button
 
 					funding: {
