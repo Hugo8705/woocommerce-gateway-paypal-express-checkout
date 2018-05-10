@@ -124,7 +124,9 @@ class WC_Gateway_PPEC_Cart_Handler {
 	 * @since 1.6.0
 	 */
 	public function wc_ajax_start_checkout() {
-		// TODO verify a nonce
+		if ( ! wp_verify_nonce( $_POST['nonce'], '_wc_ppec_start_checkout_nonce' ) ) {
+			wp_die( __( 'Cheatin&#8217; huh?', 'woocommerce-gateway-paypal-express-checkout' ) );
+		}
 
 		$checkout = wc_gateway_ppec()->checkout;
 		$checkout->start_checkout_from_cart();
@@ -218,6 +220,7 @@ class WC_Gateway_PPEC_Cart_Handler {
 					'paypal_credit'               => $settings->is_credit_enabled(),
 					'update_shipping_costs_nonce' => wp_create_nonce( '_wc_ppec_update_shipping_costs_nonce' ),
 					'ajaxurl'                     => WC_AJAX::get_endpoint( 'wc_ppec_update_shipping_costs' ),
+					'start_checkout_nonce'        => wp_create_nonce( '_wc_ppec_start_checkout_nonce' ),
 					'start_checkout_url'          => WC_AJAX::get_endpoint( 'wc_ppec_start_checkout' ),
 				)
 			);

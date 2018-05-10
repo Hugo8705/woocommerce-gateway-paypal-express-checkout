@@ -21,8 +21,13 @@
 					},
 
 					payment: function( data, actions ) {
-						return paypal.request.post( wc_ppec_context.start_checkout_url )
-							.then( function( data ) { return data.token; } );
+						return paypal.request( {
+							method: 'post',
+							url: wc_ppec_context.start_checkout_url,
+							data: { 'nonce': wc_ppec_context.start_checkout_nonce },
+						} ).then( function( data ) {
+							return data.token;
+						} );
 					},
 
 					onAuthorize: function( data, actions ) {
