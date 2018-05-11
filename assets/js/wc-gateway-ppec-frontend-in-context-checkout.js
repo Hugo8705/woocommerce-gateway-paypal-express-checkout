@@ -17,7 +17,10 @@
 					style: {
 						tagline: false,
 						size: wc_ppec_context.button_size,
-						layout: 'vertical',
+						layout: wc_ppec_context.button_layout,
+						color: wc_ppec_context.button_color,
+						shape: wc_ppec_context.button_shape,
+						label: wc_ppec_context.button_label,
 					},
 
 					payment: function( data, actions ) {

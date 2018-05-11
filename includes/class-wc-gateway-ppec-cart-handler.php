@@ -216,7 +216,12 @@ class WC_Gateway_PPEC_Cart_Handler {
 					'sandbox'                     => $settings->sandbox_api_clientid,
 					'locale'                      => $settings->get_paypal_locale(),
 
+					'button_layout'               => is_product() ? 'horizontal' : $settings->button_layout,
 					'button_size'                 => $settings->button_size,
+					'button_shape'                => $settings->button_shape,
+					'button_color'                => $settings->button_color,
+					'button_label'                => is_product() ? 'buynow' : null,
+
 					'paypal_credit'               => $settings->is_credit_enabled(),
 					'update_shipping_costs_nonce' => wp_create_nonce( '_wc_ppec_update_shipping_costs_nonce' ),
 					'ajaxurl'                     => WC_AJAX::get_endpoint( 'wc_ppec_update_shipping_costs' ),
